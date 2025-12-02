@@ -11,7 +11,7 @@ public class SerialService {
     private volatile String ultimaLeitura = "";
 
     @PostConstruct
-    public void iniciar(){
+    public void iniciar() {
         porta = SerialPort.getCommPort("COM9"); // <-- ALTERE PARA A PORTA CERTA!
         porta.setBaudRate(9600);
 
@@ -23,8 +23,10 @@ public class SerialService {
         System.out.println("Porta serial aberta com sucesso.");
 
         porta.addDataListener(new SerialPortDataListenerImpl(data -> {
-            ultimaLeitura = data;
-            System.out.println("Recebido: " + data);
+            if (data.contains("ANGLE")) {
+                ultimaLeitura = data;
+                System.out.println("Recebido: " + data);
+            }
         }));
     }
 
