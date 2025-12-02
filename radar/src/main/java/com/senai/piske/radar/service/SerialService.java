@@ -12,7 +12,7 @@ public class SerialService {
 
     @PostConstruct
     public void iniciar(){
-        porta = SerialPort.getCommPort("COM3"); // <-- ALTERE PARA A PORTA CERTA!
+        porta = SerialPort.getCommPort("COM9"); // <-- ALTERE PARA A PORTA CERTA!
         porta.setBaudRate(9600);
 
         if (!porta.openPort()) {
