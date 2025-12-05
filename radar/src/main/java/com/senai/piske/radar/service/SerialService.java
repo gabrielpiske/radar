@@ -12,7 +12,7 @@ public class SerialService {
 
     @PostConstruct
     public void iniciar(){
-        porta = SerialPort.getCommPort("COM9");
+        porta = SerialPort.getCommPort("COM6");
         porta.setBaudRate(9600);
 
         if (!porta.openPort()) {
@@ -26,17 +26,20 @@ public class SerialService {
             ultimaLeitura = data;
             System.out.println("Recebido: " + data);
             
-            // Extrair ângulo da posição do servo (você precisa enviar isso do Arduino)
-            // Exemplo: "Distância: 12.34, Ângulo: 90"
-            if (data.contains("Ângulo:")) {
+            // Formato: ANGLE:128;DIST:177.11
+            if (data.contains("ANGLE:") && data.contains("DIST:")) {
                 try {
-                    String[] partes = data.split("Ângulo:");
-                    if (partes.length > 1) {
-                        String anguloStr = partes[1].replaceAll("[^\\d]", "").trim();
-                        ultimoAngulo = Integer.parseInt(anguloStr);
+                    String[] partes = data.split(";");
+                    if (partes.length >= 1) {
+                        // Extrair ângulo
+                        String anguloPart = partes[0];
+                        if (anguloPart.contains("ANGLE:")) {
+                            String anguloStr = anguloPart.replace("ANGLE:", "").trim();
+                            ultimoAngulo = Integer.parseInt(anguloStr);
+                        }
                     }
                 } catch (Exception e) {
-                    // Ignorar erro de parsing
+                    System.err.println("Erro ao extrair ângulo: " + e.getMessage());
                 }
             }
         }));

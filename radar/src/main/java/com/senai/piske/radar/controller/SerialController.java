@@ -26,31 +26,40 @@ public class SerialController {
     @GetMapping("/api/radar/dados")
     public SerialData getDados() {
         String leitura = serialService.getUltimaLeitura();
-        
-        // Processar a leitura para extrair distância
+        System.out.println("Leitura crua: " + leitura); 
         double distancia = 0;
         boolean alerta = false;
-        
+        int angulo = 0;
+
         try {
-            // Extrair número da string (ex: "Distância: 12.34")
-            String[] partes = leitura.split(":");
-            if (partes.length > 1) {
-                String valorStr = partes[1].replaceAll("[^\\d.]", "").trim();
-                distancia = Double.parseDouble(valorStr);
-                alerta = distancia <= 10; // Alerta se objeto a 10cm ou menos
+            // Formato: ANGLE:128;DIST:177.11
+            if (leitura.contains(";")) {
+                String[] partes = leitura.split(";");
+
+                // Processar ângulo
+                if (partes[0].contains("ANGLE:")) {
+                    String anguloStr = partes[0].replace("ANGLE:", "").trim();
+                    angulo = Integer.parseInt(anguloStr);
+                }
+
+                // Processar distância
+                if (partes[1].contains("DIST:")) {
+                    String distStr = partes[1].replace("DIST:", "").trim();
+                    distancia = Double.parseDouble(distStr);
+                    alerta = distancia <= 10; // Alerta se objeto a 10cm ou menos
+                }
             }
         } catch (Exception e) {
+            System.err.println("Erro ao processar leitura: " + e.getMessage());
             distancia = 0;
+            angulo = 0;
+            alerta = false;
         }
-        
-        // Obter ângulo do serviço (você precisa adicionar essa funcionalidade)
-        int angulo = serialService.getUltimoAngulo();
-        
+
         return new SerialData(
-            distancia, 
-            angulo, 
-            alerta, 
-            LocalDateTime.now().format(formatter)
-        );
+                distancia,
+                angulo,
+                alerta,
+                LocalDateTime.now().format(formatter));
     }
 }
