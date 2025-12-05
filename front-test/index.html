@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Monitor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 Monitor de Radar</h1>
+        
+        <div class="status-panel">
+            <div class="status-item">
+                <span>Status:</span>
+                <span id="status-text" class="status-normal">NORMAL</span>
+            </div>
+            <div class="status-item">
+                <span>Ângulo:</span>
+                <span id="angle-value">0°</span>
+            </div>
+            <div class="status-item">
+                <span>Distância:</span>
+                <span id="distance-value">0.0 cm</span>
+            </div>
+            <div class="status-item">
+                <span>Última atualização:</span>
+                <span id="timestamp">--:--:--</span>
+            </div>
+        </div>
+
+        <div class="radar-container">
+            <div class="radar">
+                <div class="radar-screen">
+                    <div class="sweep-line" id="sweep-line"></div>
+                    <!-- Pontos de referência -->
+                    <div class="center-dot"></div>
+                    <div class="circle circle-1"></div>
+                    <div class="circle circle-2"></div>
+                    <div class="circle circle-3"></div>
+                    <div class="circle circle-4"></div>
+                    <!-- Marcadores de ângulo -->
+                    <div class="angle-marker" style="transform: rotate(0deg)"></div>
+                    <div class="angle-marker" style="transform: rotate(45deg)"></div>
+                    <div class="angle-marker" style="transform: rotate(90deg)"></div>
+                    <div class="angle-marker" style="transform: rotate(135deg)"></div>
+                    <div class="angle-marker" style="transform: rotate(180deg)"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="distance-indicator">
+            <div class="distance-label">DISTÂNCIA</div>
+            <div class="distance-bar">
+                <div class="distance-fill" id="distance-fill"></div>
+            </div>
+            <div class="distance-scale">
+                <span>0cm</span>
+                <span>100cm</span>
+                <span>200cm</span>
+                <span>300cm</span>
+                <span>400cm</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

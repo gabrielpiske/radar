@@ -115,10 +115,10 @@ void atualizarSensor() {
     lastDistance = duracao * 0.0343 / 2.0;
   }
 
-  Serial.print("ANGLE:");
-  Serial.print(currentPos);
-  Serial.print(";DIST:");
-  Serial.println(lastDistance);
+  Serial.print("Distância: ");
+  Serial.print(lastDistance);
+  Serial.print(", Ângulo: ");
+  Serial.println(currentPos);
 
   /*---------------------- FILTRO DE DETECÇÃO -------------------------*/
 
