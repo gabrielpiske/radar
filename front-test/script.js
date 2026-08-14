@@ -20,9 +20,9 @@ async function updateRadar() {
         const data = await response.json();
         
         // Atualizar dados
-        const angle = data.angle || 0;
-        const distance = data.distance || 0;
-        const isAlert = data.alert || false;
+        const angle = Number.isFinite(data.angle) ? data.angle : 0;
+        const distance = Number.isFinite(data.distance) ? data.distance : 0;
+        const isAlert = data.alert === true;
         
         // Atualizar elementos
         angleValue.textContent = `${angle}°`;
@@ -43,13 +43,15 @@ async function updateRadar() {
             exitAlertMode();
         }
         
-        // Cor da barra baseada na distância
-        if (distance <= 10) {
+        // Mesmas faixas usadas no novo hardware: alerta <20, atenção até 50.
+        if (distance > 0 && distance < 20) {
             distanceFill.style.background = 'linear-gradient(90deg, #ff0000, #cc0000)';
-        } else if (distance <= 50) {
-            distanceFill.style.background = 'linear-gradient(90deg, #ffff00, #cccc00)';
-        } else {
+        } else if (distance >= 20 && distance <= 50) {
+            distanceFill.style.background = 'linear-gradient(90deg, #ff7800, #cc5f00)';
+        } else if (distance > 50) {
             distanceFill.style.background = 'linear-gradient(90deg, #00ff00, #00cc00)';
+        } else {
+            distanceFill.style.background = '#001100';
         }
         
     } catch (error) {

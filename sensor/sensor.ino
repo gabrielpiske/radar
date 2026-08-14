@@ -1,188 +1,109 @@
 #include <Servo.h>
 
-#define rele 2
-#define trigPin 12
-#define echoPin 11
+const int PIN_TRIG = 13;
+const int PIN_ECHO = 12;
+const int PIN_SERVO = 9;
 
-#define LED_R 6   // LED Vermelho
-#define LED_G 3   // LED Verde
-#define LED_B 5   // LED Azul
+const int LED_VERMELHO = 7;
+const int LED_AZUL = 6;
+const int LED_VERDE = 5;
 
-Servo radar;
+Servo meuServo;
 
-int currentPos = 0;
-int stepDirection = 1;
-
-unsigned long previousServoMillis = 0;
-unsigned long previousSensorMillis = 0;
-unsigned long objetoSaiuMillis = 0;
-unsigned long piscaMillis = 0;
-
-// INTERVALOS
-const int servoInterval = 15;
-const int sensorInterval = 60;
-const int distanciaAlvo = 10;
-
-// FILTRO ANTI-RUÍDO
-int contadorEntrada = 0;
-int contadorSaida = 0;
-const int leiturasNecessarias = 4;
-
-float lastDistance = 0;
-
-// ESTADOS
-bool objetoDetectado = false;
-bool aguardandoRetorno = false;
-bool ledEstado = false;
+int anguloAtual = 0;
 
 void setup() {
+  pinMode(PIN_TRIG, OUTPUT);
+  pinMode(PIN_ECHO, INPUT);
+  
+  pinMode(LED_VERMELHO, OUTPUT);
+  pinMode(LED_AZUL, OUTPUT);
+  pinMode(LED_VERDE, OUTPUT);
+  
+  meuServo.attach(PIN_SERVO, 544, 2400); 
   Serial.begin(9600);
-  pinMode(rele, OUTPUT);
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
+}
 
-  pinMode(LED_R, OUTPUT);
-  pinMode(LED_G, OUTPUT);
-  pinMode(LED_B, OUTPUT);
+long medirDistancia() {
+  digitalWrite(PIN_TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(PIN_TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(PIN_TRIG, LOW);
+  
+  long duracao = pulseIn(PIN_ECHO, HIGH);
+  long distancia = duracao * 0.034 / 2;
 
-  radar.attach(7);
+  // Protocolo consumido pela API: uma leitura completa por linha.
+  // Mantém o ângulo mesmo durante o travamento do alvo.
+  Serial.print("ANGLE:");
+  Serial.print(anguloAtual);
+  Serial.print(";DIST:");
+  Serial.println(distancia);
+  return distancia;
+}
 
-  controleRele(true);
-  backHome(0);
-  setColor(0, 1, 0);  // LED verde
+void definirCorLED(int r, int g, int b) {
+  analogWrite(LED_VERMELHO, r);
+  analogWrite(LED_VERDE, g);
+  analogWrite(LED_AZUL, b);
+}
 
-  delay(2000);
+void piscarAlertaVermelho() {
+  static unsigned long ultimaTroca = 0;
+  static bool estadoLed = false;
+  
+  if (millis() - ultimaTroca >= 300) {
+    ultimaTroca = millis();
+    estadoLed = !estadoLed;
+    if (estadoLed) {
+      definirCorLED(255, 0, 0);
+    } else {
+      definirCorLED(0, 0, 0);
+    }
+  }
+}
+
+void travarAlvo() {
+  bool objetoAindaPerto = true;
+  
+  while (objetoAindaPerto) {
+    piscarAlertaVermelho();
+    delay(25);
+    
+    long dist = medirDistancia();
+    if (dist >= 20 || dist == 0) {
+      objetoAindaPerto = false;
+    }
+  }
+}
+
+void processarLeitura(int angulo, long distancia) {
+  if (distancia > 0 && distancia < 20) {
+    travarAlvo();
+  } else if (distancia >= 20 && distancia <= 50) {
+    definirCorLED(255, 120, 0); 
+  } else if (distancia > 50) {
+    definirCorLED(0, 255, 0); 
+  } else {
+    definirCorLED(0, 0, 0);
+  }
 }
 
 void loop() {
-  atualizarSensor();
-
-  if (!objetoDetectado && !aguardandoRetorno) {
-    atualizarServo();
-  } 
-  else if (objetoDetectado) {
-    piscarVermelho();
-  } 
-  else if (aguardandoRetorno) {
-    // Espera 2 segundos para retomar
-    if (millis() - objetoSaiuMillis >= 2000) {
-      aguardandoRetorno = false;
-      setColor(0, 1, 0); // volta para verde
-    }
+  for (anguloAtual = 0; anguloAtual <= 180; anguloAtual += 2) {
+    meuServo.write(anguloAtual);
+    delay(30);
+    
+    long dist = medirDistancia();
+    processarLeitura(anguloAtual, dist);
   }
-}
-
-/*---------------------- SERVO -------------------------*/
-
-void atualizarServo() {
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousServoMillis >= servoInterval) {
-    previousServoMillis = currentMillis;
-
-    radar.write(currentPos);
-    currentPos += stepDirection;
-
-    if (currentPos >= 180 || currentPos <= 0) {
-      stepDirection = -stepDirection;
-    }
+  
+  for (anguloAtual = 180; anguloAtual >= 0; anguloAtual -= 2) {
+    meuServo.write(anguloAtual);
+    delay(30);
+    
+    long dist = medirDistancia();
+    processarLeitura(anguloAtual, dist);
   }
-}
-
-/*---------------------- SENSOR -------------------------*/
-
-void atualizarSensor() {
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousSensorMillis < sensorInterval)
-    return;
-
-  previousSensorMillis = currentMillis;
-
-  // DISPARA O TRIG
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(3);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  // MEDIR TEMPO DO PULSO
-  unsigned long duracao = pulseIn(echoPin, HIGH, 30000);
-
-  if (duracao == 0) {
-    lastDistance = 400;  // sem eco = muito longe
-  } else {
-    lastDistance = duracao * 0.0343 / 2.0;
-  }
-
-  Serial.print("Distância: ");
-  Serial.print(lastDistance);
-  Serial.print(", Ângulo: ");
-  Serial.println(currentPos);
-
-  /*---------------------- FILTRO DE DETECÇÃO -------------------------*/
-
-  if (lastDistance <= distanciaAlvo) {
-    contadorEntrada++;
-    contadorSaida = 0;
-
-    if (!objetoDetectado && contadorEntrada >= leiturasNecessarias) {
-      objetoDetectado = true;
-      contadorEntrada = 0;
-      aguardandoRetorno = false;
-      setColor(1, 0, 0);
-      controleRele(false);
-      Serial.println(">>> OBJETO DETECTADO CONFIRMADO!");
-    }
-  }
-  else {
-    contadorSaida++;
-    contadorEntrada = 0;
-
-    if (objetoDetectado && contadorSaida >= leiturasNecessarias) {
-      objetoDetectado = false;
-      contadorSaida = 0;
-      aguardandoRetorno = true;
-      objetoSaiuMillis = millis();
-      controleRele(true);
-      Serial.println(">>> OBJETO REALMENTE SAIU!");
-    }
-  }
-}
-
-/*---------------------- FEEDBACK VISUAL -------------------------*/
-
-void piscarVermelho() {
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - piscaMillis >= 300) {
-    piscaMillis = currentMillis;
-    ledEstado = !ledEstado;
-    setColor(ledEstado, 0, 0);
-  }
-}
-
-void setColor(bool r, bool g, bool b) {
-  digitalWrite(LED_R, r);
-  digitalWrite(LED_G, g);
-  digitalWrite(LED_B, b);
-}
-
-/*---------------------- SERVO HOME -------------------------*/
-
-void backHome(int position) {
-  int step = (currentPos > position) ? -1 : 1;
-
-  for (int i = currentPos; i != position; i += step) {
-    radar.write(i);
-    delay(20);
-  }
-
-  currentPos = position;
-}
-
-/*---------------------- RELE -------------------------*/
-
-void controleRele(bool ligar) {
-  digitalWrite(rele, ligar ? HIGH : LOW);
 }
